@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Remove Student</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f2f2f2;
+            padding: 20px;
+        }
+
+        h2 {
+            color: #333;
+        }
+
+        .flash-message {
+            padding: 10px 15px;
+            margin-bottom: 20px;
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+            border-radius: 5px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+            border-radius: 6px;
+            overflow: hidden;
+            box-shadow: 0 0 10px rgba(0,0,0,0.05);
+        }
+
+        th, td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: center;
+        }
+
+        th {
+            background-color: #f44336;
+            color: white;
+        }
+
+        form {
+            display: inline;
+        }
+
+        button {
+            padding: 6px 12px;
+            background: #f44336;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #d32f2f;
+        }
+
+        a.back-button {
+            display: inline-block;
+            margin-top: 20px;
+            padding: 10px 16px;
+            background: #607d8b;
+            color: white;
+            text-decoration: none;
+            border-radius: 4px;
+        }
+
+        a.back-button:hover {
+            background-color: #455a64;
+        }
+    </style>
+</head>
+<body>
+    <h2>Remove a Student</h2>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, msg in messages %}
+                <div class="flash-message">{{ msg }}</div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <table>
+        <tr>
+            <th>Student Name</th>
+            <th>UID</th>
+            <th>Action</th>
+        </tr>
+        {% for student in students %}
+        <tr>
+            <td>{{ student.name }}</td>
+            <td>{{ student.uid }}</td>
+            <td>
+                <form method="POST" action="{{ url_for('remove_student', student_id=student.id) }}">
+                    <button type="submit">Remove</button>
+                </form>
+            </td>
+        </tr>
+        {% endfor %}
+    </table>
+
+    <a href="{{ url_for('dashboard') }}" class="back-button">Back to Dashboard</a>
+</body>
+</html>

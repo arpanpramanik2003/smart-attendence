@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Attendance Records</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background: #f2f2f2;
+        }
+
+        .table-container {
+            overflow-x: auto;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            min-width: 600px;
+        }
+
+        th,
+        td {
+            border: 1px solid #ddd;
+            padding: 10px;
+            text-align: center;
+        }
+
+        th {
+            background-color: #607d8b;
+            color: white;
+        }
+
+        .button {
+            padding: 10px 16px;
+            background: #4CAF50;
+            color: white;
+            text-decoration: none;
+            border-radius: 4px;
+            margin-right: 10px;
+        }
+
+        .button:hover {
+            background-color: #388e3c;
+        }
+
+        .actions {
+            margin-bottom: 15px;
+        }
+
+        @media (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <h2>Attendance Records</h2>
+
+    <form method="get" action="{{ url_for('records') }}">
+        <label>Select Date:</label>
+        <input type="date" name="date" value="{{ selected_date }}">
+        <button type="submit" class="button">View</button>
+    </form>
+
+    <br>
+
+    <div class="actions">
+        <a class="button" href="{{ url_for('export_excel') }}">Export to Excel</a>
+        <a class="button" href="{{ url_for('export_pdf') }}">Export to PDF</a>
+    </div>
+
+    {% if not data_exists %}
+    <p style="color: red; font-weight: bold;">No attendance found for selected date.</p>
+    {% endif %}
+
+    <div class="table-container">
+        <table>
+            <tr>
+                <th>UID</th>
+                <th>Name</th>
+                <th>Status</th>
+            </tr>
+            {% for student in students %}
+            <tr>
+                <td>{{ student.uid }}</td>
+                <td>{{ student.name }}</td>
+                <td>{{ student.status }}</td>
+            </tr>
+            {% endfor %}
+        </table>
+    </div>
+
+    <br>
+    <a href="{{ url_for('dashboard') }}" class="button" style="background: #607d8b;">Back to Dashboard</a>
+</body>
+
+</html>
