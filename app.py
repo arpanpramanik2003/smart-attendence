@@ -12,6 +12,10 @@ app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'your_dev_secret_key')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db.init_app(app)
 
+with app.app_context():
+    if os.environ.get("FLASK_ENV") == "production":
+        upgrade()
+
 # Dummy credentials
 USERNAME = "a"
 PASSWORD = "a"
