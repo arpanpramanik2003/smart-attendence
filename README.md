@@ -82,20 +82,20 @@ Default admin credentials:
    - `FLASK_DEBUG`: Set to `0` in production
   
 ## File Structure
-attendance-app/
+attendance-app/  
 │
-├── migrations/ # Database migration files (Flask-Migrate/Alembic)
-│ ├── versions/ # Generated migration scripts
-│ │ └── xxxxx_migration.py # Migration files with timestamps
-│ ├── alembic.ini # Alembic configuration
-│ └── script.py.mako # Migration script template
-│
-│
-├── templates/ # Jinja2 HTML templates
-│ ├── attendance.html # Daily attendance interface
-│ ├── dashboard.html # Admin dashboard
-│ ├── layout.html # Base template
-│ ├── login.html # Authentication page
+├── migrations/ # Database migration files (Flask-Migrate/Alembic)  
+│ ├── versions/ # Generated migration scripts  
+│ │ └── xxxxx_migration.py # Migration files with timestamps  
+│ ├── alembic.ini # Alembic configuration  
+│ └── script.py.mako # Migration script template  
+│  
+│  
+├── templates/ # Jinja2 HTML templates  
+│ ├── attendance.html # Daily attendance interface  
+│ ├── dashboard.html # Admin dashboard  
+│ ├── layout.html # Base template  
+│ ├── login.html # Authentication page  
 │ ├── records.html # Attendance records view
 │ ├── register.html # Student registration form
 │ └── remove.html # Student management
