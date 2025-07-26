@@ -1,11 +1,15 @@
 from flask import Flask, render_template, request, redirect, url_for, session, flash
-from models import db
+from flask_sqlalchemy import SQLAlchemy
+from flask_migrate import Migrate 
 import os
 from alembic.command import upgrade
 from alembic.config import Config
 
 app = Flask(__name__)
+db = SQLAlchemy() 
+migrate = Migrate(app, db) 
 
+# Database configuration
 if os.environ.get("FLASK_ENV") != "production":
     app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///database.db'
 else:
