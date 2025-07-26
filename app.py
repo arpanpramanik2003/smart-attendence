@@ -13,7 +13,7 @@ app = Flask(__name__)
 db = SQLAlchemy()
 migrate = Migrate(app, db)
 
-if os.environ.get("FLASK_ENV") != "production":
+if os.environ.get("FLASK_DEBUG") != "1":
     app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///database.db'
 else:
     database_url = os.environ.get('DATABASE_URL')
@@ -26,7 +26,7 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db.init_app(app)
 
 with app.app_context():
-    if os.environ.get("FLASK_ENV") == "production":
+    if os.environ.get("FLASK_DEBUG") == "1":
         alembic_cfg = Config(os.path.join(os.path.dirname(__file__), "migrations", "alembic.ini"))
         upgrade(alembic_cfg, "head")
 
@@ -73,7 +73,6 @@ def register():
             flash("Please fill in all fields.", "danger")
             return redirect(url_for('register'))
 
-        # Check if UID already exists
         existing_student = Student.query.filter_by(uid=uid).first()
         if existing_student:
             flash("UID already exists. Try a different one.", "danger")
@@ -100,10 +99,9 @@ def attendance():
         for student in students:
             status = request.form.get(f'attend_{student.id}')
             if status in ['P', 'A']:
-                # Check if already marked
                 existing = Attendance.query.filter_by(student_id=student.id, date=today).first()
                 if existing:
-                    existing.status = status 
+                    existing.status = status
                 else:
                     new_attendance = Attendance(
                         student_id=student.id,
@@ -195,7 +193,6 @@ def export_pdf():
     students = Student.query.all()
     dates = sorted({a.date for a in Attendance.query.all()})
 
-    # Prepare data for the template
     students_data = [
         {
             'name': s.name,
@@ -205,10 +202,8 @@ def export_pdf():
         for s in students
     ]
 
-    # Render HTML template
     html = render_template('records.html', students=students_data, dates=dates)
 
-    # Generate PDF
     pdf_file = BytesIO()
     HTML(string=html).write_pdf(pdf_file)
     pdf_file.seek(0)
@@ -220,16 +215,6 @@ def logout():
     session.pop('user', None)
     flash("Logged out successfully", "success")
     return redirect(url_for('login'))
-
-from flask_admin import Admin
-from flask_admin.contrib.sqla import ModelView
-
-# Create admin instance
-admin = Admin(app, name='Attendance Admin', template_mode='bootstrap4')
-
-# Add your models
-admin.add_view(ModelView(Student, db.session))
-admin.add_view(ModelView(Attendance, db.session))
 
 if __name__ == "__main__":
     with app.app_context():
