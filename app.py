@@ -1,6 +1,8 @@
 from flask import Flask, render_template, request, redirect, url_for, session, flash
 from models import db
 import os
+from alembic.command import upgrade
+from alembic.config import Config
 
 app = Flask(__name__)
 if os.environ.get("FLASK_ENV") != "production":
@@ -14,7 +16,9 @@ db.init_app(app)
 
 with app.app_context():
     if os.environ.get("FLASK_ENV") == "production":
-        upgrade()
+        alembic_cfg = Config("alembic.ini")
+        upgrade(alembic_cfg, "head")
+
 
 # Dummy credentials
 USERNAME = "a"
