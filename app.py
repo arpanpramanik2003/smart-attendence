@@ -1,15 +1,18 @@
-from flask import Flask, render_template, request, redirect, url_for, session, flash
+from flask import Flask, render_template, request, redirect, url_for, session, flash, send_file
 from flask_sqlalchemy import SQLAlchemy
-from flask_migrate import Migrate 
+from flask_migrate import Migrate
 import os
 from alembic.command import upgrade
 from alembic.config import Config
+from datetime import datetime, date as dt_date
+import pandas as pd
+from io import BytesIO
+from weasyprint import HTML
 
 app = Flask(__name__)
-db = SQLAlchemy() 
-migrate = Migrate(app, db) 
+db = SQLAlchemy()
+migrate = Migrate(app, db)
 
-# Database configuration
 if os.environ.get("FLASK_ENV") != "production":
     app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///database.db'
 else:
@@ -55,7 +58,6 @@ def dashboard():
         return redirect(url_for('login'))
     return render_template('dashboard.html')
 
-
 from models import Student
 
 @app.route('/register', methods=['GET', 'POST'])
@@ -84,9 +86,6 @@ def register():
 
     return render_template('register.html')
 
-
-from flask import flash, render_template, redirect, request, session, url_for
-from datetime import datetime
 from models import Attendance, Student
 
 @app.route('/attendance', methods=['GET', 'POST'])
@@ -117,8 +116,6 @@ def attendance():
 
     return render_template('attendance.html', students=students, today=today)
 
-
-
 @app.route('/remove', methods=['GET'])
 def remove():
     if 'user' not in session:
@@ -133,18 +130,11 @@ def remove_student(student_id):
         return redirect(url_for('login'))
 
     student = Student.query.get_or_404(student_id)
-
     Attendance.query.filter_by(student_id=student.id).delete()
-
     db.session.delete(student)
     db.session.commit()
     flash(f"Student '{student.name}' removed successfully.", "success")
     return redirect(url_for('remove'))
-
-
-
-from datetime import date as dt_date
-from flask import request, flash
 
 @app.route('/records', methods=['GET', 'POST'])
 def records():
@@ -180,14 +170,6 @@ def records():
                            selected_date=selected_date,
                            data_exists=data_exists)
 
-
-
-import pandas as pd
-from flask import send_file
-from io import BytesIO
-from xhtml2pdf import pisa
-from flask import make_response
-
 @app.route('/export/excel')
 def export_excel():
     students = Student.query.all()
@@ -213,20 +195,25 @@ def export_pdf():
     students = Student.query.all()
     dates = sorted({a.date for a in Attendance.query.all()})
 
-    html = render_template('records.html', students=[
+    # Prepare data for the template
+    students_data = [
         {
-            **{'name': s.name, 'uid': s.uid},
+            'name': s.name,
+            'uid': s.uid,
             **{d: (Attendance.query.filter_by(student_id=s.id, date=d).first() or type('', (), {'status': '-'})()).status for d in dates}
         }
         for s in students
-    ], dates=dates)
+    ]
 
-    result = BytesIO()
-    pisa.CreatePDF(BytesIO(html.encode("utf-8")), dest=result)
-    result.seek(0)
+    # Render HTML template
+    html = render_template('records.html', students=students_data, dates=dates)
 
-    return send_file(result, download_name="attendance.pdf", as_attachment=True)
+    # Generate PDF
+    pdf_file = BytesIO()
+    HTML(string=html).write_pdf(pdf_file)
+    pdf_file.seek(0)
 
+    return send_file(pdf_file, download_name="attendance.pdf", as_attachment=True)
 
 @app.route('/logout')
 def logout():
@@ -243,7 +230,6 @@ admin = Admin(app, name='Attendance Admin', template_mode='bootstrap4')
 # Add your models
 admin.add_view(ModelView(Student, db.session))
 admin.add_view(ModelView(Attendance, db.session))
-
 
 if __name__ == "__main__":
     with app.app_context():
