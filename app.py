@@ -10,9 +10,10 @@ from io import BytesIO
 from weasyprint import HTML
 
 app = Flask(__name__)
-db = SQLAlchemy()
-migrate = Migrate(app, db)
 
+# Configure app first
+app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'your_dev_secret_key')
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 if os.environ.get("FLASK_DEBUG") != "1":
     app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///database.db'
 else:
@@ -21,10 +22,11 @@ else:
         database_url = database_url.replace('postgres://', 'postgresql://', 1)
     app.config['SQLALCHEMY_DATABASE_URI'] = database_url
 
-app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'your_dev_secret_key')
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-db.init_app(app)
+# Initialize SQLAlchemy and Migrate
+db = SQLAlchemy(app)
+migrate = Migrate(app, db)
 
+# Apply migrations in production
 with app.app_context():
     if os.environ.get("FLASK_DEBUG") == "1":
         alembic_cfg = Config(os.path.join(os.path.dirname(__file__), "migrations", "alembic.ini"))
@@ -73,15 +75,16 @@ def register():
             flash("Please fill in all fields.", "danger")
             return redirect(url_for('register'))
 
-        existing_student = Student.query.filter_by(uid=uid).first()
-        if existing_student:
-            flash("UID already exists. Try a different one.", "danger")
-        else:
-            new_student = Student(name=name, uid=uid)
-            db.session.add(new_student)
-            db.session.commit()
-            flash("Student registered successfully!", "success")
-            return redirect(url_for('register'))
+        with app.app_context():
+            existing_student = Student.query.filter_by(uid=uid).first()
+            if existing_student:
+                flash("UID already exists. Try a different one.", "danger")
+            else:
+                new_student = Student(name=name, uid=uid)
+                db.session.add(new_student)
+                db.session.commit()
+                flash("Student registered successfully!", "success")
+                return redirect(url_for('register'))
 
     return render_template('register.html')
 
@@ -92,47 +95,50 @@ def attendance():
     if 'user' not in session:
         return redirect(url_for('login'))
 
-    students = Student.query.order_by(Student.name).all()
-    today = datetime.now().strftime("%Y-%m-%d")
+    with app.app_context():
+        students = Student.query.order_by(Student.name).all()
+        today = datetime.now().strftime("%Y-%m-%d")
 
-    if request.method == 'POST':
-        for student in students:
-            status = request.form.get(f'attend_{student.id}')
-            if status in ['P', 'A']:
-                existing = Attendance.query.filter_by(student_id=student.id, date=today).first()
-                if existing:
-                    existing.status = status
-                else:
-                    new_attendance = Attendance(
-                        student_id=student.id,
-                        date=today,
-                        status=status
-                    )
-                    db.session.add(new_attendance)
-        db.session.commit()
-        flash("✅ Attendance saved successfully!", "success")
+        if request.method == 'POST':
+            for student in students:
+                status = request.form.get(f'attend_{student.id}')
+                if status in ['P', 'A']:
+                    existing = Attendance.query.filter_by(student_id=student.id, date=today).first()
+                    if existing:
+                        existing.status = status
+                    else:
+                        new_attendance = Attendance(
+                            student_id=student.id,
+                            date=today,
+                            status=status
+                        )
+                        db.session.add(new_attendance)
+            db.session.commit()
+            flash("✅ Attendance saved successfully!", "success")
 
-    return render_template('attendance.html', students=students, today=today)
+        return render_template('attendance.html', students=students, today=today)
 
 @app.route('/remove', methods=['GET'])
 def remove():
     if 'user' not in session:
         return redirect(url_for('login'))
 
-    students = Student.query.order_by(Student.name).all()
-    return render_template('remove.html', students=students)
+    with app.app_context():
+        students = Student.query.order_by(Student.name).all()
+        return render_template('remove.html', students=students)
 
 @app.route('/remove/<int:student_id>', methods=['POST'])
 def remove_student(student_id):
     if 'user' not in session:
         return redirect(url_for('login'))
 
-    student = Student.query.get_or_404(student_id)
-    Attendance.query.filter_by(student_id=student.id).delete()
-    db.session.delete(student)
-    db.session.commit()
-    flash(f"Student '{student.name}' removed successfully.", "success")
-    return redirect(url_for('remove'))
+    with app.app_context():
+        student = Student.query.get_or_404(student_id)
+        Attendance.query.filter_by(student_id=student.id).delete()
+        db.session.delete(student)
+        db.session.commit()
+        flash(f"Student '{student.name}' removed successfully.", "success")
+        return redirect(url_for('remove'))
 
 @app.route('/records', methods=['GET', 'POST'])
 def records():
@@ -149,66 +155,69 @@ def records():
     else:
         selected_date = dt_date.today()
 
-    students = Student.query.order_by(Student.name).all()
-    attendance_data = []
+    with app.app_context():
+        students = Student.query.order_by(Student.name).all()
+        attendance_data = []
 
-    for student in students:
-        att = Attendance.query.filter_by(student_id=student.id, date=selected_date).first()
-        row = {
-            'uid': student.uid,
-            'name': student.name,
-            'status': att.status if att else '-'
-        }
-        attendance_data.append(row)
+        for student in students:
+            att = Attendance.query.filter_by(student_id=student.id, date=selected_date).first()
+            row = {
+                'uid': student.uid,
+                'name': student.name,
+                'status': att.status if att else '-'
+            }
+            attendance_data.append(row)
 
-    data_exists = any(row['status'] != '-' for row in attendance_data)
+        data_exists = any(row['status'] != '-' for row in attendance_data)
 
-    return render_template('records.html',
-                           students=attendance_data,
-                           selected_date=selected_date,
-                           data_exists=data_exists)
+        return render_template('records.html',
+                              students=attendance_data,
+                              selected_date=selected_date,
+                              data_exists=data_exists)
 
 @app.route('/export/excel')
 def export_excel():
-    students = Student.query.all()
-    dates = sorted({a.date for a in Attendance.query.all()})
+    with app.app_context():
+        students = Student.query.all()
+        dates = sorted({a.date for a in Attendance.query.all()})
 
-    data = []
-    for student in students:
-        row = {'Name': student.name, 'UID': student.uid}
-        for date in dates:
-            att = Attendance.query.filter_by(student_id=student.id, date=date).first()
-            row[date] = att.status if att else "-"
-        data.append(row)
+        data = []
+        for student in students:
+            row = {'Name': student.name, 'UID': student.uid}
+            for date in dates:
+                att = Attendance.query.filter_by(student_id=student.id, date=date).first()
+                row[date] = att.status if att else "-"
+            data.append(row)
 
-    df = pd.DataFrame(data)
-    output = BytesIO()
-    df.to_excel(output, index=False, engine='openpyxl')
-    output.seek(0)
+        df = pd.DataFrame(data)
+        output = BytesIO()
+        df.to_excel(output, index=False, engine='openpyxl')
+        output.seek(0)
 
-    return send_file(output, download_name="attendance.xlsx", as_attachment=True)
+        return send_file(output, download_name="attendance.xlsx", as_attachment=True)
 
 @app.route('/export/pdf')
 def export_pdf():
-    students = Student.query.all()
-    dates = sorted({a.date for a in Attendance.query.all()})
+    with app.app_context():
+        students = Student.query.all()
+        dates = sorted({a.date for a in Attendance.query.all()})
 
-    students_data = [
-        {
-            'name': s.name,
-            'uid': s.uid,
-            **{d: (Attendance.query.filter_by(student_id=s.id, date=d).first() or type('', (), {'status': '-'})()).status for d in dates}
-        }
-        for s in students
-    ]
+        students_data = [
+            {
+                'name': s.name,
+                'uid': s.uid,
+                **{d: (Attendance.query.filter_by(student_id=s.id, date=d).first() or type('', (), {'status': '-'})()).status for d in dates}
+            }
+            for s in students
+        ]
 
-    html = render_template('records.html', students=students_data, dates=dates)
+        html = render_template('records.html', students=students_data, dates=dates)
 
-    pdf_file = BytesIO()
-    HTML(string=html).write_pdf(pdf_file)
-    pdf_file.seek(0)
+        pdf_file = BytesIO()
+        HTML(string=html).write_pdf(pdf_file)
+        pdf_file.seek(0)
 
-    return send_file(pdf_file, download_name="attendance.pdf", as_attachment=True)
+        return send_file(pdf_file, download_name="attendance.pdf", as_attachment=True)
 
 @app.route('/logout')
 def logout():
