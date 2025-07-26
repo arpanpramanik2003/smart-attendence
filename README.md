@@ -83,13 +83,30 @@ Default admin credentials:
   
 ## File Structure
 attendance-app/
-├── migrations/          # Database migration files
-├── templates/          # HTML templates
-├── .gitignore
-├── app.py              # Main application file
-├── models.py           # Database models
-├── requirements.txt    # Dependencies
-└── README.md
+│
+├── migrations/ # Database migration files (Flask-Migrate/Alembic)
+│ ├── versions/ # Generated migration scripts
+│ │ └── xxxxx_migration.py # Migration files with timestamps
+│ ├── alembic.ini # Alembic configuration
+│ └── script.py.mako # Migration script template
+│
+│
+├── templates/ # Jinja2 HTML templates
+│ ├── attendance.html # Daily attendance interface
+│ ├── dashboard.html # Admin dashboard
+│ ├── layout.html # Base template
+│ ├── login.html # Authentication page
+│ ├── records.html # Attendance records view
+│ ├── register.html # Student registration form
+│ └── remove.html # Student management
+│
+├── .env # Environment variables (optional)
+├── .gitignore # Specifies untracked files
+├── app.py # Flask application entry point
+├── config.py # Configuration settings (optional)
+├── models.py # SQLAlchemy database models
+├── requirements.txt # Python dependencies
+└── README.md # Project documentation
 
 ## License
 
