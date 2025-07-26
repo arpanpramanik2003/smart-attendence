@@ -19,7 +19,7 @@ db.init_app(app)
 
 with app.app_context():
     if os.environ.get("FLASK_ENV") == "production":
-        alembic_cfg = Config("alembic.ini")
+        alembic_cfg = Config(os.path.join(os.path.dirname(__file__), "migrations", "alembic.ini"))
         upgrade(alembic_cfg, "head")
 
 
