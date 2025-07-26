@@ -5,10 +5,11 @@ from alembic.command import upgrade
 from alembic.config import Config
 
 app = Flask(__name__)
+
 if os.environ.get("FLASK_ENV") != "production":
     app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///database.db'
 else:
-   database_url = os.environ.get('DATABASE_URL')
+    database_url = os.environ.get('DATABASE_URL')
     if database_url and database_url.startswith('postgres://'):
         database_url = database_url.replace('postgres://', 'postgresql://', 1)
     app.config['SQLALCHEMY_DATABASE_URI'] = database_url
@@ -21,7 +22,6 @@ with app.app_context():
     if os.environ.get("FLASK_ENV") == "production":
         alembic_cfg = Config(os.path.join(os.path.dirname(__file__), "migrations", "alembic.ini"))
         upgrade(alembic_cfg, "head")
-
 
 # Dummy credentials
 USERNAME = "a"
