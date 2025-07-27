@@ -1,6 +1,6 @@
 # models.py
 from flask_sqlalchemy import SQLAlchemy
-from app import db  # Import db from your main app file
+from app import db  # Import db from main app file
 
 class Student(db.Model):
     id = db.Column(db.Integer, primary_key=True)
